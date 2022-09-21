@@ -1,0 +1,260 @@
+#include<iostream>
+#include<bits/stdc++.h>
+#include<time.h>
+#include<cstdlib>
+#include<algorithm>
+
+using namespace std;
+
+double func(double x, double y);
+double fitness(double f);
+double min_element_of_array(double a[][1]);
+void GenNewSol(int Np, int n, double a[][1], double b[][1], double ub[], double lb[], double f[][1], double trial[][1], double fit[][1]);
+double max(double a[][1]);
+double max_and_position(double a[][1], int *j);
+
+
+int main(){
+
+double lb[2] = {-10, -10};  // lower bound
+double ub[2] = {10, 10};   // upper bound
+
+int Np = 10; //population size
+int t = 50; //number of iterations
+int limit = 5;  //permissible number of failures
+
+double f[Np][1]; // matrix to store the objective function values
+double fit[Np][1]; // matrix to store the fitness values
+double trial[Np][1]; // initialization of the trial matrix
+double bestsol[2] = {0,0}; // array to save the best solution
+
+int D = sizeof(lb);
+
+double a[Np][1];
+double b[Np][1];
+srand((unsigned)time(NULL));
+
+for(int i = 0; i<Np; i++){
+
+    a[i][1] = lb[0] + ((float)rand()/RAND_MAX)*(ub[0] - lb[0]);
+    b[i][1] = lb[1] + ((float)rand()/RAND_MAX)*(ub[1] - lb[1]);
+}
+
+for(int i = 0; i<Np; i++){
+
+    f[i][1] = func(a[i][1], b[i][1]);
+    fit[i][1] = fitness(f[i][1]);
+}
+
+double bestobj = min_element_of_array(f);
+
+
+//Employed bee phase begins
+
+for(int l = 0; l<10; l++){
+
+
+
+for(int i = 0; i<Np; i++){
+
+	 GenNewSol(Np, i, a, b, ub, lb, f, trial, fit);
+}
+
+double probability[Np][1];
+
+
+for(int i = 0; i<Np; i++){
+	probability[i][1] = 0.9* (fit[i][1]/ max(fit)) + 0.1;
+
+
+}
+
+//onlooker bee phase begins
+
+int m = 0;
+int n = 0;
+double r;
+
+while(m<Np){
+	srand((unsigned)time(NULL));
+	r = (float(rand())/float((RAND_MAX)));
+
+	if(r<probability[n][1]){
+
+		GenNewSol(Np, n, a, b, ub, lb, f, trial, fit);
+		m++;
+	}
+
+	n = n%Np + 1;
+}
+
+if(bestobj > min_element_of_array(f)){
+	bestobj = min_element_of_array(f);
+}
+
+
+//scout bee phase begins
+double val;
+int j;
+val = max_and_position(trial, &j);
+
+
+if(val>limit){
+	trial[j][1] = 0;
+	a[j][1] = lb[0] + ((float)rand()/RAND_MAX)*(ub[0] - lb[0]);
+	b[j][1] = lb[1] + ((float)rand()/RAND_MAX)*(ub[1] - lb[1]);
+	f[j][1] = func(a[j][1], b[j][1]);
+	fit[j][1] = fitness(f[j][1]);
+}
+
+}
+
+if(bestobj>min_element_of_array(f)){
+	bestobj = min_element_of_array(f);
+}
+
+cout<<bestobj<<endl;
+
+cout<<endl;
+
+for(int i = 0; i<Np; i++){
+	cout<<f[i][1]<<endl;
+}
+
+
+
+}
+
+//end of main program
+
+
+
+
+double func(double x, double y){ // objective function
+
+double c;
+
+c = 0.26*x*x + 0.26*y*y - 0.48*x*y;
+return c;
+}
+
+double fitness(double f){ // function to find the fitness value
+
+double c;
+if(f>=0){
+
+    c = 1/(1+f);
+}
+else{
+
+    c = 1 + abs(f);
+}
+
+return c;
+}
+
+double min_element_of_array(double a[][1]){ // function to find the minimum value from the multidimensional array
+
+double minv;
+  minv = a[0][1];
+
+for(int i = 1; i<sizeof(a); i++){
+
+      
+
+    if(minv>a[i][1]){
+
+        minv = a[i][1];
+
+    }
+}
+
+return minv;
+
+}
+
+void GenNewSol(int Np, int n, double a[][1], double b[][1], double ub[], double lb[], double f[][1], double trial[][1], double fit[][1]){  // to generate new solution
+	srand((unsigned)time(NULL));
+
+	int j = rand()%2 + 1;
+	int p = rand()%Np + 1;
+
+	while(p == n){
+		p = rand()%Np + 1;
+	}
+
+	double phi = -1 + static_cast <float>(rand())/ (static_cast<float>(RAND_MAX/(2)));
+	double Xnew;
+
+	if(j == 1){
+
+		Xnew = a[n][1] + phi*(a[n][1] - a[p][1]);
+		Xnew = min(Xnew, ub[0]);
+		Xnew = max(Xnew, lb[0]);
+
+		if(func(Xnew, b[n][1])< func(a[n][1], b[n][1])){
+
+			f[n][1]= func(Xnew, b[n][1]);
+			trial[n][1] = 0;
+			a[n][1] = Xnew;
+			fit[n][1] = fitness(f[n][1]);
+		}
+
+		else{
+		
+			trial[n][1]++;
+		}
+
+
+	}
+
+	else{
+		Xnew = b[n][1] + phi*(b[n][1] - b[p][1]);
+		Xnew = min(Xnew, ub[1]);
+		Xnew = max(Xnew, lb[1]);
+		//f[n][1] = min(func(a[n][1],Xnew), func(a[n][1], b[n][1]));
+
+		if(func(a[n][1], Xnew)<func(a[n][1], b[n][1])){
+			f[n][1] = func(a[n][1], Xnew);
+			trial[n][1] = 0;
+			b[n][1] = Xnew;
+			fit[n][1] = fitness(f[n][1]);
+		}
+
+		else{
+		
+			trial[n][1]++;
+		}
+	}
+
+}
+
+double max(double a[][1]){ //to calculate the maximum element from an array
+
+	double c;
+	c = a[0][1];
+	for(int i = 1; i<10; i++){
+
+		if(a[i][1]>c){
+			c = a[i][1];
+		}
+	}
+
+	return c;
+}
+
+double max_and_position(double a[][1], int *j){
+
+	double c;
+	c = a[0][1];
+	for(int i = 1; i<10; i++){
+
+		if(a[i][1]>c){
+			c = a[i][1];
+			*j = i;
+		}
+	}
+
+	return c;
+
+}
